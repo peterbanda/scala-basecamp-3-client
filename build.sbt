@@ -2,7 +2,7 @@ organization := "com.bnd-lib"
 
 name := "scala-basecamp-3-client"
 
-version := "0.0.1"
+version := "0.0.2"
 
 description := "Scala client for Basecamp 3 API implemented using Play WS lib."
 
@@ -16,7 +16,6 @@ resolvers ++= Seq(
 )
 
 libraryDependencies ++= Seq(
-  "com.typesafe.akka" %% "akka-stream" % "2.5.19",                                          // Akka streaming
   "com.typesafe.play" %% "play-ws" % "2.5.9" exclude("commons-logging", "commons-logging"), // WS
   "net.codingwell" %% "scala-guice" % "4.0.1",                                              // Guice
   "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",                                // Logging
