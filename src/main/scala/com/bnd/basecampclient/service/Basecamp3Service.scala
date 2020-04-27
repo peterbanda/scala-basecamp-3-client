@@ -30,14 +30,30 @@ import scala.concurrent.Future
 @ImplementedBy(classOf[Basecamp3ServiceImpl])
 trait Basecamp3Service {
 
-  def projects(accountId: Int): Future[Seq[Project]]
+  def projects(
+    accountId: Int,
+    page: Option[Int] = None
+  ): Future[Seq[Project]]
 
-  def people(accountId: Int): Future[Seq[Person]]
+  def people(
+    accountId: Int,
+    page: Option[Int] = None
+  ): Future[Seq[Person]]
 
-  def uploads(accountId: Int, bucket: Long, vault: Long): Future[Seq[Upload]]
+  def uploads(
+    accountId: Int,
+    bucket: Long,
+    vault: Long,
+    page: Option[Int] = None
+  ): Future[Seq[Upload]]
 
   // vault ~ folder
-  def vaults(accountId: Int, bucket: Long, vault: Long): Future[Seq[Vault]]
+  def vaults(
+    accountId: Int,
+    bucket: Long,
+    vault: Long,
+    page: Option[Int] = None
+  ): Future[Seq[Vault]]
 
   def downloadFile(accountId: Int, bucket: Long, upload: Long, fileName: String): Future[ByteString]
 
@@ -73,25 +89,33 @@ protected class Basecamp3ServiceImpl @Inject()(config: Config) extends Basecamp3
     new AhcWSClient(config)
   }
 
-  override def projects(accountId: Int) =
-    getRequest[Project](EndPoint.projects, accountId)
+  override def projects(
+    accountId: Int,
+    page: Option[Int]
+  ) =
+    getRequest[Project](EndPoint.projects, accountId, page)
 
-  override def people(accountId: Int) =
-    getRequest[Person](EndPoint.people, accountId)
+  override def people(
+    accountId: Int,
+    page: Option[Int]
+  ) =
+    getRequest[Person](EndPoint.people, accountId, page)
 
   override def uploads(
     accountId: Int,
     bucket: Long,
-    vault: Long
+    vault: Long,
+    page: Option[Int]
   ) =
-    getRequest[Upload](EndPoint.uploads(bucket, vault), accountId)
+    getRequest[Upload](EndPoint.uploads(bucket, vault), accountId, page)
 
   override def vaults(
     accountId: Int,
     bucket: Long,
-    vault: Long
+    vault: Long,
+    page: Option[Int]
   ) =
-    getRequest[Vault](EndPoint.vaults(bucket, vault), accountId)
+    getRequest[Vault](EndPoint.vaults(bucket, vault), accountId, page)
 
   override def downloadFile(
     accountId: Int,
@@ -148,9 +172,40 @@ protected class Basecamp3ServiceImpl @Inject()(config: Config) extends Basecamp3
   private def getRequest[T: Reads](
     endPoint: EndPoint.Value,
     accountId: Int,
+    page: Option[Int] = None,
     withAuthorization: Boolean = true
   ): Future[Seq[T]] =
-    getRequestRaw(url(endPoint, accountId), withAuthorization).map { response =>
+    page.map( page =>
+      getRequestAux(endPoint, accountId, Some(page), withAuthorization)
+    ).getOrElse(
+      getRequestInc(endPoint, accountId, 1, withAuthorization)
+    )
+
+  private def getRequestInc[T: Reads](
+    endPoint: EndPoint.Value,
+    accountId: Int,
+    page: Int,
+    withAuthorization: Boolean
+  ): Future[Seq[T]] =
+    for {
+      results <- getRequestAux(endPoint, accountId, Some(page), withAuthorization)
+      moreResults <- if (results.nonEmpty)
+        getRequestInc(endPoint, accountId, page + 1, withAuthorization)
+      else
+        Future(Nil)
+    } yield
+      results ++ moreResults
+
+  private def getRequestAux[T: Reads](
+    endPoint: EndPoint.Value,
+    accountId: Int,
+    page: Option[Int] = None,
+    withAuthorization: Boolean = true
+  ): Future[Seq[T]] = {
+    val baseUrl = url(endPoint, accountId)
+    val fullUrl = page.map(baseUrl + "?page=" + _).getOrElse(baseUrl)
+
+    getRequestRaw(fullUrl, withAuthorization).map { response =>
       handleErrorResponse(response)
       response.json match {
         case array: JsArray =>
@@ -169,6 +224,7 @@ protected class Basecamp3ServiceImpl @Inject()(config: Config) extends Basecamp3
     }.recover {
       case e: TimeoutException => throw new Basecamp3Exception(s"Basecamp3Service.$endPoint timed out: ${e.getMessage}.")
     }
+  }
 
   private def getRequestRaw(
     url: String,

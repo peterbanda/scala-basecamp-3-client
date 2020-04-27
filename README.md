@@ -1,10 +1,10 @@
 # Scala Basecamp 3 Client
 
 The service currently supports 6 calls
-- *projects* (accountId: Int)
-- *people* (accountId: Int)
-- *uploads* (accountId: Int, bucket: Long, vault: Long)
-- *vaults* (accountId: Int, bucket: Long, vault: Long)
+- *projects* (accountId: Int) - with pagination
+- *people* (accountId: Int) - with pagination
+- *uploads* (accountId: Int, bucket: Long, vault: Long) - with pagination
+- *vaults* (accountId: Int, bucket: Long, vault: Long) - with pagination
 - *downloadFile* (accountId: Int, bucket: Long, upload: Long, fileName: String)
 - *downloadFileStreamed* (accountId: Int, bucket: Long, upload: Long, fileName: String)
 
