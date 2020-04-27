@@ -2,7 +2,7 @@ organization := "com.bnd-lib"
 
 name := "scala-basecamp-3-client"
 
-version := "0.0.2"
+version := "0.0.3"
 
 description := "Scala client for Basecamp 3 API implemented using Play WS lib."
 

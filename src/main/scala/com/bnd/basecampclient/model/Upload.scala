@@ -15,10 +15,10 @@ case class Upload(
   `type`: String,
   url: String,
   app_url: String,
-//  bookmark_url: String, // TODO: Automatic Play JSON formatter supports only ~20 fields so have to comment out a few
-//  subscription_url: String,
+  //  bookmark_url: String, // TODO: Automatic Play JSON formatter supports only ~20 fields so have to comment out a few
+  //  subscription_url: String,
   comments_count: Int,
-//  comments_url: String,
+  //  comments_url: String,
   position: Int,
   description: Option[String],
   content_type: String,
@@ -26,18 +26,18 @@ case class Upload(
   filename: String,
   download_url: String,
   app_download_url: String,
-  parent: UploadParent,
-  bucket: UploadBucket,
-  creator: UploadCreator
+  parent: Parent,
+  bucket: Bucket,
+  creator: Creator
 )
 
-case class UploadBucket(
+case class Bucket(
   id: Long,
   name: String,
   `type`: String
 )
 
-case class UploadParent(
+case class Parent(
   id: Long,
   title: String,
   `type`: String,
@@ -45,7 +45,7 @@ case class UploadParent(
   app_url: String
 )
 
-case class UploadCreator(
+case class Creator(
   id: Long,
   attachable_sgid: String,
   name: String,
@@ -63,9 +63,9 @@ case class UploadCreator(
 )
 
 object Upload {
-  implicit val parentFormat = Json.format[UploadParent]
-  implicit val bucketFormat = Json.format[UploadBucket]
-  implicit val creatorFormat = Json.format[UploadCreator]
+  implicit val parentFormat = Json.format[Parent]
+  implicit val bucketFormat = Json.format[Bucket]
+  implicit val creatorFormat = Json.format[Creator]
 
   implicit val format = Json.format[Upload]
 }

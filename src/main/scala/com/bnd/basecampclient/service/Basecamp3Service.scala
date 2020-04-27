@@ -2,7 +2,7 @@ package com.bnd.basecampclient.service
 
 import java.util.concurrent.TimeoutException
 
-import com.bnd.basecampclient.model.{Person, Project, Upload}
+import com.bnd.basecampclient.model.{Person, Project, Upload, Vault}
 import com.google.inject.ImplementedBy
 import com.typesafe.config.Config
 import javax.annotation.PreDestroy
@@ -13,6 +13,7 @@ import play.api.libs.ws.ning._
 import Project.format
 import Person.format
 import Upload.format
+import Vault.format
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Source
@@ -35,6 +36,9 @@ trait Basecamp3Service {
 
   def uploads(accountId: Int, bucket: Long, vault: Long): Future[Seq[Upload]]
 
+  // vault ~ folder
+  def vaults(accountId: Int, bucket: Long, vault: Long): Future[Seq[Vault]]
+
   def downloadFile(accountId: Int, bucket: Long, upload: Long, fileName: String): Future[ByteString]
 
   def downloadFileStreamed(accountId: Int, bucket: Long, upload: Long, fileName: String): Future[Source[ByteString, _]]
@@ -49,7 +53,7 @@ protected class Basecamp3ServiceImpl @Inject()(config: Config) extends Basecamp3
 
   private val token = config.getString("basecamp3.token")
 
-  private val requestTimeout = 2000
+  private val requestTimeout = if (config.hasPath("basecamp3.request_timeout")) config.getInt("basecamp3.request_timeout") else 2000
 
   private val coreUrl = "https://3.basecampapi.com/"
 
@@ -60,6 +64,7 @@ protected class Basecamp3ServiceImpl @Inject()(config: Config) extends Basecamp3
     val projects = Value("projects.json")
     val people = Value("people.json")
     def uploads(bucket: Long, vault: Long) = Value(s"buckets/$bucket/vaults/$vault/uploads.json")
+    def vaults(bucket: Long, vault: Long) = Value(s"buckets/$bucket/vaults/$vault/vaults.json")
     def download(bucket: Long, upload: Long, fileName: String) = Value(s"buckets/$bucket/uploads/$upload/download/$fileName")
   }
 
@@ -80,6 +85,13 @@ protected class Basecamp3ServiceImpl @Inject()(config: Config) extends Basecamp3
     vault: Long
   ) =
     getRequest[Upload](EndPoint.uploads(bucket, vault), accountId)
+
+  override def vaults(
+    accountId: Int,
+    bucket: Long,
+    vault: Long
+  ) =
+    getRequest[Vault](EndPoint.vaults(bucket, vault), accountId)
 
   override def downloadFile(
     accountId: Int,
@@ -187,14 +199,6 @@ protected class Basecamp3ServiceImpl @Inject()(config: Config) extends Basecamp3
     else
       request
   }
-
-//
-//    val bytesReturned: Future[Long] = futureResponse.flatMap {
-//      res =>
-//        // Count the number of bytes returned
-//        res.body.runWith(Sink.fold[Long, ByteString](0L){ (total, bytes) =>
-//          total + bytes.length
-//        })
 
   private val handleErrorResponse: WSResponse => Unit = { response =>
     response.status match {
